@@ -45,7 +45,7 @@ Conflicts=shutdown.target
 # oneshot + RemainAfterExit so the unit reports "active" after the single
 # /bin/true write to /proc/sys/kernel/modprobe completes.
 Type=oneshot
-ExecStart={INSTALL_PATH} --disable
+ExecStart={INSTALL_PATH} --lock
 RemainAfterExit=yes
 
 [Install]
@@ -106,19 +106,19 @@ def cmd_update():
     print(f"wrote {len(modules)} module(s) to {MODULES_FILE}")
 
 
-def cmd_disable():
+def cmd_lock():
     require_root()
     with open(MODPROBE_CTL, "w") as f:
         f.write(DISABLE_VALUE)
-    print(f"disabled: {MODPROBE_CTL} := {DISABLE_VALUE}")
+    print(f"locked: {MODPROBE_CTL} := {DISABLE_VALUE}")
 
 
-def cmd_enable():
+def cmd_unlock():
     require_root()
     modprobe = find_modprobe()
     with open(MODPROBE_CTL, "w") as f:
         f.write(modprobe)
-    print(f"enabled: {MODPROBE_CTL} := {modprobe}")
+    print(f"unlocked: {MODPROBE_CTL} := {modprobe}")
 
 
 def cmd_install():
@@ -146,7 +146,7 @@ def cmd_install():
     print(f"enabled {SERVICE_NAME}")
     print()
     print("the service will gate autoloading off at next boot.")
-    print("you probably want to run `modlock --disable` now to gate it off immediately.")
+    print("you probably want to run `modlock --lock` now to gate it off immediately.")
 
 
 def cmd_uninstall():
@@ -163,7 +163,7 @@ def cmd_uninstall():
         print(f"note: {INSTALL_PATH} not removed; rm it manually if desired")
     print()
     print("autoloading is still gated off in the running kernel.")
-    print("you probably want to run `modlock --enable` now to restore it.")
+    print("you probably want to run `modlock --unlock` now to restore it.")
 
 
 def main():
@@ -174,10 +174,10 @@ def main():
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--update",    action="store_true",
                    help="write currently-loaded modules to /etc/modules")
-    g.add_argument("--disable",   action="store_true",
-                   help="disable automatic module loading")
-    g.add_argument("--enable",    action="store_true",
-                   help="re-enable automatic module loading")
+    g.add_argument("--lock",      action="store_true",
+                   help="lock automatic module loading off")
+    g.add_argument("--unlock",    action="store_true",
+                   help="unlock automatic module loading")
     g.add_argument("--install",   action="store_true",
                    help=f"copy this script to {INSTALL_PATH} and install+enable {SERVICE_NAME}")
     g.add_argument("--uninstall", action="store_true",
@@ -185,8 +185,8 @@ def main():
     args = p.parse_args()
 
     if   args.update:    cmd_update()
-    elif args.disable:   cmd_disable()
-    elif args.enable:    cmd_enable()
+    elif args.lock:      cmd_lock()
+    elif args.unlock:    cmd_unlock()
     elif args.install:   cmd_install()
     elif args.uninstall: cmd_uninstall()
 
